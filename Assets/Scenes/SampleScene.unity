@@ -166,8 +166,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bc988320e9cffa748b2347af3ca2d19a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gridManager: {fileID: 0}
-  matchPathfinder: {fileID: 0}
+  gridManager: {fileID: 1255311669}
+  matchPathfinder: {fileID: 943005156}
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -499,7 +499,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07a92a1ebdb0369428b27e4f2f723e10, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gridManager: {fileID: 0}
+  gridManager: {fileID: 1255311669}
 --- !u!1 &1255311667
 GameObject:
   m_ObjectHideFlags: 0
@@ -545,10 +545,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tilePrefab: {fileID: 4927395850679900795, guid: e8a7708f865c2e8489093f60c58bfc61, type: 3}
-  typeGenerator: {fileID: 0}
-  matchPathfinder: {fileID: 0}
-  margin: 0.4
-  gridOffset: {x: 0, y: 0}
+  typeGenerator: {fileID: 2110776199}
+  matchPathfinder: {fileID: 943005156}
+  margin: 1
+  gridOffset: {x: 0, y: -0.5}
 --- !u!1 &1266331065
 GameObject:
   m_ObjectHideFlags: 0
