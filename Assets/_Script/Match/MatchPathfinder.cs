@@ -1,12 +1,16 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class MatchPathfinder : MonoBehaviour
 {
     [SerializeField] private GridManager gridManager; 
-    public bool CanConnect(Tile a, Tile b)
+
+    public bool TryGetPath(Tile a, Tile b, out List<Vector2Int> path)
     {
-        if (a == null || b == null || a == b || a.Type != b.Type) return false;
+        path = null;
+
+        if (a == null || b == null || a == b || a.Type != b.Type)
+            return false;
 
         Vector2Int posA = a.GridPos;
         Vector2Int posB = b.GridPos;
@@ -14,11 +18,20 @@ public class MatchPathfinder : MonoBehaviour
         // Đường thẳng (0 góc)
         if (posA.x == posB.x || posA.y == posB.y)
         {
-            if (IsStraightLineClear(posA, posB)) return true;
+            if (IsStraightLineClear(posA, posB))
+            {
+                path = new List<Vector2Int> { posA, posB };
+                return true;
+            }
         }
 
-        // BFS tối đa 2 góc
-        return BFSWithMaxTurns(posA, posB, maxTurns: 2);
+        // BFS tối đa 2 góc và lấy path
+        return BFSWithMaxTurns(posA, posB, maxTurns: 2, out path);
+    }
+
+    public bool CanConnect(Tile a, Tile b)
+    {
+        return TryGetPath(a, b, out _);
     }
 
     private bool IsStraightLineClear(Vector2Int start, Vector2Int end)
@@ -44,22 +57,48 @@ public class MatchPathfinder : MonoBehaviour
         return true;
     }
 
-    private bool BFSWithMaxTurns(Vector2Int start, Vector2Int goal, int maxTurns)
+    private bool BFSWithMaxTurns(Vector2Int start, Vector2Int goal, int maxTurns, out List<Vector2Int> path)
     {
-        var visited = new HashSet<string>();
-        var queue = new Queue<(Vector2Int pos, int turns, Vector2Int? prevDir)>();
+        path = null;
 
-        queue.Enqueue((start, 0, null));
-        visited.Add($"{start.x}_{start.y}_0");
+        var visited = new HashSet<string>();
+        var parents = new Dictionary<string, string>();
+        var queue = new Queue<(Vector2Int pos, int turns, Vector2Int dir, string key)>();
+
+        Vector2Int startDir = Vector2Int.zero;
+        string startKey = $"{start.x}_{start.y}_{startDir.x}_{startDir.y}_0";
+
+        queue.Enqueue((start, 0, startDir, startKey));
+        visited.Add(startKey);
 
         int[] dx = { 0, 1, 0, -1 };
         int[] dy = { -1, 0, 1, 0 };
 
         while (queue.Count > 0)
         {
-            var (current, turns, prevDir) = queue.Dequeue();
+            var (current, turns, prevDir, currentKey) = queue.Dequeue();
 
-            if (current == goal && turns <= maxTurns) return true;
+            if (current == goal && turns <= maxTurns)
+            {
+                // reconstruct path
+                var result = new List<Vector2Int>();
+                string key = currentKey;
+                while (true)
+                {
+                    string[] parts = key.Split('_');
+                    int x = int.Parse(parts[0]);
+                    int y = int.Parse(parts[1]);
+                    result.Add(new Vector2Int(x, y));
+
+                    if (!parents.ContainsKey(key))
+                        break;
+
+                    key = parents[key];
+                }
+                result.Reverse();
+                path = result;
+                return true;
+            }
 
             for (int d = 0; d < 4; d++)
             {
@@ -73,19 +112,21 @@ public class MatchPathfinder : MonoBehaviour
                 if (tileAtNext != null && next != goal) continue;
 
                 int newTurns = turns;
-                if (prevDir.HasValue && prevDir.Value != dir && prevDir.Value != new Vector2Int(-dir.x, -dir.y))
+                if (prevDir != Vector2Int.zero && prevDir != dir && prevDir != new Vector2Int(-dir.x, -dir.y))
                 {
                     newTurns++;
                     if (newTurns > maxTurns) continue;
                 }
 
-                string key = $"{next.x}_{next.y}_{newTurns}";
-                if (visited.Contains(key)) continue;
+                string nextKey = $"{next.x}_{next.y}_{dir.x}_{dir.y}_{newTurns}";
+                if (visited.Contains(nextKey)) continue;
 
-                visited.Add(key);
-                queue.Enqueue((next, newTurns, dir));
+                visited.Add(nextKey);
+                parents[nextKey] = currentKey;
+                queue.Enqueue((next, newTurns, dir, nextKey));
             }
         }
+
         return false;
     }
 

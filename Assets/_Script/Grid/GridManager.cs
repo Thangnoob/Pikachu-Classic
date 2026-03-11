@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class GridManager : MonoBehaviour
@@ -23,24 +23,25 @@ public class GridManager : MonoBehaviour
 
     public void Initialize(int cols, int rows)
     {
-        this.cols = cols;
-        this.rows = rows;
-        grid = new Tile[cols, rows];
+        this.cols = cols + 2;
+        this.rows = rows + 2;
 
-        GridLayoutCalculator.Calculate(cols, rows, margin, out tileWidth, out tileHeight, out startX, out startY, gridOffset);
-        GenerateGrid();
+        grid = new Tile[this.cols, this.rows];
+
+        GridLayoutCalculator.Calculate(this.cols, this.rows, margin, out tileWidth, out tileHeight, out startX, out startY, gridOffset);
+        GenerateGrid(cols, rows);
     }
 
-    private void GenerateGrid()
+    private void GenerateGrid(int playableCols, int playableRows)
     {
         ClearGrid();
 
-        List<int> types = typeGenerator.GenerateTypes(cols * rows);
+        List<int> types = typeGenerator.GenerateTypes(playableCols * playableRows);
         int index = 0;
 
-        for (int row = 0; row < rows; row++)
+        for (int row = 1; row <= playableRows; row++)
         {
-            for (int col = 0; col < cols; col++)
+            for (int col = 1; col <= playableCols; col++)
             {
                 SpawnTile(col, row, types[index]);
                 index++;
@@ -82,6 +83,18 @@ public class GridManager : MonoBehaviour
     {
         if (col < 0 || col >= cols || row < 0 || row >= rows) return null;
         return grid[col, row];
+    }
+
+    public Vector3 GridToWorld(Vector2Int gridPos)
+    {
+        return GridLayoutCalculator.GetWorldPosition(
+            gridPos.x,
+            gridPos.y,
+            tileWidth,
+            tileHeight,
+            startX,
+            startY
+        );
     }
 
     public List<Tile> GetActiveTiles() => tileList;

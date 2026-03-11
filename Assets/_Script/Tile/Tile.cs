@@ -8,10 +8,17 @@ public class Tile : MonoBehaviour
     private int type; //ID type of image (0-71 for 72 images)
     private SpriteRenderer spriteRenderer;
     private Vector2Int gridPos;
+    [SerializeField] private Color normalColor = Color.white;
+    [SerializeField] private Color selectedColor = Color.cyan;
+
 
     private void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.color = normalColor;
+        }
     }
 
     public void SetType(int newType, Sprite[] tileSprites)
@@ -23,6 +30,10 @@ public class Tile : MonoBehaviour
     public void SetGridPos(Vector2Int newGridPos)
     {
         this.gridPos = newGridPos;
+    }
+    public void SetSelected(bool value)
+    {
+        spriteRenderer.color = value ? selectedColor : normalColor;
     }
 
     public Vector2Int GridPos => gridPos;
