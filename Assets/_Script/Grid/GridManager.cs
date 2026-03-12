@@ -3,6 +3,8 @@ using UnityEngine;
 
 public class GridManager : MonoBehaviour
 {
+    public static GridManager Instance { get; private set; }
+
     [Header("References")]
     [SerializeField] private GameObject tilePrefab;
     [SerializeField] private TileTypeGenerator typeGenerator;
@@ -20,6 +22,11 @@ public class GridManager : MonoBehaviour
 
     public int Cols => cols;
     public int Rows => rows;
+
+    private void Awake()
+    {
+        Instance = this;
+    }
 
     public void Initialize(int cols, int rows)
     {

@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -10,12 +9,21 @@ public class GameManager : MonoBehaviour
     public event EventHandler OnMatchSuccess;
     public event EventHandler OnMatchFailure;
 
-    [SerializeField] private GridManager gridManager;
+    public event EventHandler OnGameStart;
+
+    [Header("References")]
     [SerializeField] private MatchPathfinder matchPathfinder;
-    [SerializeField] private LineRenderer linePrefab;
-    [SerializeField] private float lineDuration = 0.3f;
+    [SerializeField] private PathRenderer pathRenderer;
+
+    [Header("Gameplay Settings")]
+    [SerializeField] private int maxManualShuffle = 3;       // số lần shuffle người chơi được dùng
 
     private Tile firstSelected;
+
+    private int shuffleRemaining;
+    private bool isPlaying;
+
+    public int ShuffleRemaining => shuffleRemaining;
 
     private void Awake()
     {
@@ -24,11 +32,35 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        gridManager.Initialize(16, 9);
+        GameTimerManager.Instance.OnTimeOver += GameTimerManager_OnTimeOver;
+
+        GridManager.Instance.Initialize(16, 9);
+        StartLevel();
+    }
+
+    private void Update()
+    {
+        if (!isPlaying) return;
+    }
+
+    private void StartLevel()
+    {
+        OnGameStart?.Invoke(this, EventArgs.Empty);
+        shuffleRemaining = maxManualShuffle;
+        isPlaying = true;
+    }
+
+    private void GameTimerManager_OnTimeOver(object sender, System.EventArgs e)
+    {
+        isPlaying = false;
+        Debug.Log("Hết thời gian!");
+        // Tùy bạn xử lý: hiện popup thua, dừng input, v.v.
     }
 
     public void OnTileClicked(Tile clicked)
     {
+        if (!isPlaying) return;
+
         OnTileSelected?.Invoke(this, EventArgs.Empty);
         if (firstSelected == null)
         {
@@ -54,10 +86,10 @@ public class GameManager : MonoBehaviour
             Debug.Log("MATCH SUCCESS!");
 
             // Vẽ line đỏ theo path
-            DrawConnection(path);
+            pathRenderer.DrawConnection(path);
 
-            gridManager.RemoveTile(firstSelected);
-            gridManager.RemoveTile(clicked);
+            GridManager.Instance.RemoveTile(firstSelected);
+            GridManager.Instance.RemoveTile(clicked);
 
             OnMatchSuccess?.Invoke(this, EventArgs.Empty);
 
@@ -65,7 +97,13 @@ public class GameManager : MonoBehaviour
             if (!matchPathfinder.HasAnyValidPair())
             {
                 Debug.Log("Hết cặp → Auto Shuffle...");
-                gridManager.ShuffleGrid(true); // ← ensure valid pair
+                GridManager.Instance.ShuffleGrid(true); // ← ensure valid pair
+            }
+
+            // Nếu muốn: kiểm tra thắng khi không còn tile nào
+            if (GridManager.Instance.GetActiveTiles().Count == 0) { 
+                isPlaying = false; 
+                Debug.Log("Win!"); 
             }
         }
         else
@@ -84,30 +122,19 @@ public class GameManager : MonoBehaviour
         firstSelected = null;
     }
 
-    private void DrawConnection(System.Collections.Generic.List<Vector2Int> path)
+    public void ManualShuffle()
     {
-        if (linePrefab == null || path == null || path.Count < 2)
+        if (!isPlaying) return;
+        if (shuffleRemaining <= 0)
+        {
+            Debug.Log("Hết lượt shuffle!");
             return;
-
-        LineRenderer line = Instantiate(linePrefab);
-        line.positionCount = path.Count;
-
-        for (int i = 0; i < path.Count; i++)
-        {
-            Vector3 worldPos = gridManager.GridToWorld(path[i]);
-            worldPos.z = -1f; // đưa line lên trên tile
-            line.SetPosition(i, worldPos);
         }
 
-        StartCoroutine(DestroyLineAfter(line, lineDuration));
+        shuffleRemaining--;
+        GridManager.Instance.ShuffleGrid(true);
+        Debug.Log($"Shuffle thủ công, còn lại: {shuffleRemaining}");
     }
 
-    private IEnumerator DestroyLineAfter(LineRenderer line, float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        if (line != null)
-        {
-            Destroy(line.gameObject);
-        }
-    }
+    
 }

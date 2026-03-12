@@ -3,7 +3,6 @@ using UnityEngine;
 
 public class MatchPathfinder : MonoBehaviour
 {
-    [SerializeField] private GridManager gridManager; 
 
     public bool TryGetPath(Tile a, Tile b, out List<Vector2Int> path)
     {
@@ -42,7 +41,7 @@ public class MatchPathfinder : MonoBehaviour
             int max = Mathf.Max(start.y, end.y);
             for (int r = min + 1; r < max; r++)
             {
-                if (gridManager.GetTile(start.x, r) != null) return false;
+                if (GridManager.Instance.GetTile(start.x, r) != null) return false;
             }
         }
         else if (start.y == end.y) // cùng hàng
@@ -51,7 +50,7 @@ public class MatchPathfinder : MonoBehaviour
             int max = Mathf.Max(start.x, end.x);
             for (int c = min + 1; c < max; c++)
             {
-                if (gridManager.GetTile(c, start.y) != null) return false;
+                if (GridManager.Instance.GetTile(c, start.y) != null) return false;
             }
         }
         return true;
@@ -105,10 +104,10 @@ public class MatchPathfinder : MonoBehaviour
                 Vector2Int dir = new Vector2Int(dx[d], dy[d]);
                 Vector2Int next = current + dir;
 
-                if (next.x < 0 || next.x >= gridManager.Cols || next.y < 0 || next.y >= gridManager.Rows)
+                if (next.x < 0 || next.x >= GridManager.Instance.Cols || next.y < 0 || next.y >= GridManager.Instance.Rows)
                     continue;
 
-                Tile tileAtNext = gridManager.GetTile(next.x, next.y);
+                Tile tileAtNext = GridManager.Instance.GetTile(next.x, next.y);
                 if (tileAtNext != null && next != goal) continue;
 
                 int newTurns = turns;
@@ -133,7 +132,7 @@ public class MatchPathfinder : MonoBehaviour
     // Kiểm tra toàn bộ grid còn cặp nào match được không
     public bool HasAnyValidPair()
     {
-        var activeTiles = gridManager.GetActiveTiles();
+        var activeTiles = GridManager.Instance.GetActiveTiles();
         for (int i = 0; i < activeTiles.Count; i++)
         {
             for (int j = i + 1; j < activeTiles.Count; j++)
