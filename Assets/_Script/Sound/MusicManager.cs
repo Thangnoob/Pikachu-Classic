@@ -30,7 +30,7 @@ public class MusicManager : MonoBehaviour
         musicAudioSource.volume = GetMusicVolumeNormalized();
     }
 
-    private void ChangeMusicVolume()
+    public void ChangeMusicVolume()
     {
         musicVolume = (musicVolume + 1) % MUSIC_VOLUME_MAX; 
         musicAudioSource.volume = GetMusicVolumeNormalized();   
@@ -44,5 +44,11 @@ public class MusicManager : MonoBehaviour
     public float GetMusicVolumeNormalized()
     {
         return ((float)musicVolume) / MUSIC_VOLUME_MAX;
+    }
+
+    public void PlayBGM(AudioClip audioSource)
+    {
+        this.musicAudioSource.clip = audioSource;
+        musicAudioSource.Play();
     }
 }

@@ -7,6 +7,16 @@ public class InGameUI : MonoBehaviour
     [Header("UI References")]
     [SerializeField] private TMP_Text shuffleText;
     [SerializeField] private Image timerBarImage;
+    [SerializeField] private Button shuffleButton;
+    [SerializeField] private Button pauseButton;
+
+    private void Awake()
+    {
+        shuffleButton.onClick.AddListener(OnShuffleButtonClicked);
+        pauseButton.onClick.AddListener(() => {
+            GameManager.Instance.PauseGame();
+        });
+    }
 
     private void Update()
     {

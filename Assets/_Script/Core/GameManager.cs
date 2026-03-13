@@ -8,26 +8,27 @@ public class GameManager : MonoBehaviour
     public event EventHandler OnTileSelected;
     public event EventHandler OnMatchSuccess;
     public event EventHandler OnMatchFailure;
+    public event EventHandler OnGamePaused;
+    public event EventHandler OnGameUnPaused;
 
     public event EventHandler OnGameStart;
 
     [Header("References")]
     [SerializeField] private MatchPathfinder matchPathfinder;
     [SerializeField] private PathRenderer pathRenderer;
-    [SerializeField] private SpriteRenderer backgroundRenderer;
 
-    [Header("Level Config")]
-    [SerializeField] private LevelDataSO[] levels;
-    [SerializeField] private int startLevelIndex = 0;
+    [Header("Shuffle Settings")]
+    [SerializeField] private int baseManualShuffle = 3;      // base = 3
 
     [Header("Gameplay Settings (runtime)")]
-    [SerializeField] private int maxManualShuffle = 3;       // số lần shuffle người chơi được dùng
+    [SerializeField] private int maxManualShuffle = 3;       // base + cumulative bonus theo level
+
+    [SerializeField] private int manualShuffleCap = 7;       // giới hạn tối đa = 7
 
     private Tile firstSelected;
 
     private int shuffleRemaining;
     private bool isPlaying;
-    private int currentLevelIndex;
 
     public int ShuffleRemaining => shuffleRemaining;
 
@@ -40,8 +41,18 @@ public class GameManager : MonoBehaviour
     {
         GameTimerManager.Instance.OnTimeOver += GameTimerManager_OnTimeOver;
 
-        currentLevelIndex = Mathf.Clamp(startLevelIndex, 0, levels != null && levels.Length > 0 ? levels.Length - 1 : 0);
-        LoadLevel(currentLevelIndex);
+        if (LevelManager.Instance != null)
+        {
+            LevelManager.Instance.OnLevelLoaded += LevelManager_OnLevelLoaded;
+            LevelManager.Instance.LoadStartLevel();
+        }
+        else
+        {
+            Debug.LogWarning("Không tìm thấy LevelManager. Dùng cấu hình mặc định của GameManager.");
+            maxManualShuffle = Mathf.Max(0, baseManualShuffle);
+        }
+
+        StartLevel();
     }
 
     private void Update()
@@ -56,46 +67,21 @@ public class GameManager : MonoBehaviour
         isPlaying = true;
     }
 
-    private void LoadLevel(int index)
+    private void LevelManager_OnLevelLoaded(object sender, EventArgs e)
     {
-        if (levels == null || levels.Length == 0)
+        ApplyLevelConfigForGameplay();
+    }
+
+    private void ApplyLevelConfigForGameplay()
+    {
+        if (LevelManager.Instance == null)
         {
-            Debug.LogError("Chưa cấu hình LevelData trong GameManager!");
-            // fallback: dùng giá trị mặc định
-            GridManager.Instance.Initialize(16, 9);
-            GameTimerManager.Instance.SetDuration(180f);
-            maxManualShuffle = 3;
-            GridManager.Instance.SetGravityMode(GravityMode.None);
-            StartLevel();
+            maxManualShuffle = Mathf.Min(Mathf.Max(0, manualShuffleCap), Mathf.Max(0, baseManualShuffle));
             return;
         }
 
-        if (index < 0 || index >= levels.Length)
-        {
-            Debug.LogError($"Index level {index} không hợp lệ!");
-            return;
-        }
-
-        LevelDataSO level = levels[index];
-
-        // Grid
-        GridManager.Instance.Initialize(level.cols, level.rows);
-        GridManager.Instance.SetGravityMode(level.gravityMode);
-
-        // Timer & shuffle
-        GameTimerManager.Instance.SetDuration(level.levelDuration);
-        maxManualShuffle += level.manualShuffleBonus;
-
-        // Background
-        if (backgroundRenderer != null && level.backgroundSprite != null)
-        {
-            backgroundRenderer.sprite = level.backgroundSprite;
-        }
-
-        // TODO: Nhạc nền nếu bạn đã có MusicManager
-        // if (level.bgm != null) MusicManager.Instance.PlayBGM(level.bgm);
-
-        StartLevel();
+        // base + bonus đã kiếm được (chỉ cộng 1 lần khi qua level) và có cap
+        maxManualShuffle = LevelManager.Instance.GetManualShuffleLimit(baseManualShuffle, manualShuffleCap);
     }
 
     private void GameTimerManager_OnTimeOver(object sender, System.EventArgs e)
@@ -152,6 +138,13 @@ public class GameManager : MonoBehaviour
             if (GridManager.Instance.GetActiveTiles().Count == 0) { 
                 isPlaying = false; 
                 Debug.Log("Win!"); 
+
+                // Cộng bonus đúng 1 lần khi qua level này, nhưng bị giới hạn bởi manualShuffleCap
+                if (LevelManager.Instance != null)
+                {
+                    LevelManager.Instance.MarkLevelCompleted(LevelManager.Instance.CurrentLevelIndex);
+                    ApplyLevelConfigForGameplay();
+                }
             }
         }
         else
@@ -184,5 +177,28 @@ public class GameManager : MonoBehaviour
         Debug.Log($"Shuffle thủ công, còn lại: {shuffleRemaining}");
     }
 
-    
+    private void PauseUnpauseGame()
+    {
+        if (Time.timeScale == 1f)
+        {
+            PauseGame();
+        }
+        else
+        {
+            UnPauseGame();
+        }
+    }
+
+    public void PauseGame()
+    {
+        Time.timeScale = 0f;
+        OnGamePaused?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void UnPauseGame()
+    {
+        Time.timeScale = 1f;
+        OnGameUnPaused?.Invoke(this, EventArgs.Empty);
+    }
+
 }
